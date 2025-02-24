@@ -1,38 +1,26 @@
-# Codesage AI  
+CodeSage AI is a VS Code extension that integrates AI-powered code reviews directly into your editor. Get instant feedback on your code in any programming language using DeepSeek AI.
 
-🚀 **Codesage AI** is a VS Code extension that uses AI to review your code and suggest improvements. Stop wasting time debugging—let AI do the heavy lifting!  
+🚀 Features
+🔍 AI-Powered Code Reviews: Analyze your code and get suggestions for improvements.
+🌎 Multi-Language Support: Works with Python, JavaScript, PHP, C++, and more.
+⚡ Seamless Integration: Run reviews directly inside VS Code with a simple command.
+📌 How to Use
+Install the extension (codesage-ai.vsix) in VS Code.
+Open any code file in the editor.
+Run the command Review Code with AI from the command palette (Ctrl + Shift + P).
+See the results in a popup window.
+📦 Requirements
+Python must be installed on your system.
+Internet connection is required to connect with DeepSeek AI.
+⚙️ Extension Settings
+This extension does not require any custom settings.
 
-## ✨ Features  
-
-- 📌 **AI-Powered Code Review**: Get instant feedback on your code with expert AI suggestions.  
-- 🔍 **Error Detection**: Identify syntax errors, bad practices, and potential improvements.  
-- 📝 **Multi-Language Support**: Works with Python, JavaScript, and more!  
-
-## 📦 Installation  
-
-1. Download and install the extension from the VS Code Marketplace (coming soon).  
-2. Or manually install:  
-   - Clone this repository  
-   - Run `vsce package` and install the generated `.vsix` file in VS Code.  
-
-## 🔧 Usage  
-
-1. Open a code file in VS Code.  
-2. Press `Ctrl+Shift+P` and run `Review Code with AI`.  
-3. See AI-powered suggestions in the output!  
-
-## 🛠 Requirements  
-
-- Python (for AI processing)  
-- Node.js (for VS Code extension)  
-
-## 🤝 Contributing  
-
-Want to improve Codesage AI? Feel free to fork the repo and submit a pull request!  
-
-## 📜 License  
-
-MIT License. See [LICENSE](LICENSE) for details.  
-
----  
-Developed with ❤️ by [Your Name]  
+🛠️ Known Issues
+Some AI responses may need manual verification.
+Large code files may take longer to analyze.
+📜 Release Notes
+1.0.0
+Initial release with AI-powered code review functionality.
+📖 Additional Resources
+VS Code Extension Guide
+DeepSeek AI Model

@@ -1,0 +1,43 @@
+{
+  "name": "codesage-ai",
+  "displayName": "Codesage AI",
+  "description": "Tired of debugging? Let AI do the job. This extension uses DeepSeek to review your code and suggest expert solutions.",
+  "version": "0.0.1",
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/your-username/codesage-ai"
+},
+  "engines": {
+    "vscode": "^1.97.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onCommand:extension.reviewCode"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.reviewCode",
+        "title": "Review Code with AI"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.97.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "eslint": "^9.19.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1"
+  }
+}
+
