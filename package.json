@@ -1,0 +1,151 @@
+{
+  "name": "codecooksage-ai",
+  "displayName": "CodeSage AI(DeepSeek)",
+  "description": "AI-powered code reviews inside VS Code. Get instant, expert-level feedback on bugs, security, performance, and code quality — powered by DeepSeek.",
+  "version": "0.2.0",
+  "publisher": "SamiullahAtta",
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Abdus-Sami01/codesage-ai"
+  },
+  "engines": {
+    "vscode": "^1.97.0"
+  },
+  "categories": [
+    "AI",
+    "Machine Learning",
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "ai",
+    "code review",
+    "deepseek",
+    "code analysis",
+    "linter",
+    "code quality"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codesage-ai.reviewCode",
+        "title": "CodeSage: Review Code",
+        "icon": "$(code)"
+      },
+      {
+        "command": "codesage-ai.reviewFunction",
+        "title": "CodeSage: Review Function"
+      },
+      {
+        "command": "codesage-ai.setApiKey",
+        "title": "CodeSage: Set API Key"
+      },
+      {
+        "command": "codesage-ai.selectProfile",
+        "title": "CodeSage: Select Review Profile"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codesage-ai.reviewCode",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "CodeSage AI",
+      "properties": {
+        "codesage-ai.model": {
+          "type": "string",
+          "default": "deepseek-ai/DeepSeek-R1",
+          "enum": [
+            "deepseek-ai/DeepSeek-R1",
+            "deepseek-ai/DeepSeek-V3",
+            "deepseek-ai/DeepSeek-Coder-V2-Instruct"
+          ],
+          "enumDescriptions": [
+            "DeepSeek R1 — Deep reasoning model (recommended for thorough reviews)",
+            "DeepSeek V3 — Fast general-purpose model",
+            "DeepSeek Coder V2 — Specialized coding model"
+          ],
+          "description": "AI model to use for code reviews."
+        },
+        "codesage-ai.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "minimum": 256,
+          "maximum": 16384,
+          "description": "Maximum tokens in the AI response."
+        },
+        "codesage-ai.temperature": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1.5,
+          "description": "Controls response creativity. Lower = more focused, higher = more creative."
+        },
+        "codesage-ai.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to the Python interpreter."
+        },
+        "codesage-ai.reviewProfile": {
+          "type": "string",
+          "default": "general",
+          "enum": [
+            "general",
+            "security",
+            "performance",
+            "clean-code"
+          ],
+          "enumDescriptions": [
+            "General -- Balanced review covering bugs, security, performance, and readability",
+            "Security -- Focused security audit: vulnerabilities, OWASP, secrets, injection",
+            "Performance -- Performance analysis: complexity, bottlenecks, memory, I/O",
+            "Clean Code -- Readability, SOLID, naming, refactoring"
+          ],
+          "description": "Review profile that tailors the AI's review focus."
+        },
+        "codesage-ai.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show 'Review' buttons above functions, methods, and classes."
+        },
+        "codesage-ai.enableStreaming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Stream review results in real-time as the AI generates them."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "build": "node esbuild.js",
+    "build:prod": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src/",
+    "pretest": "npm run build",
+    "test": "vscode-test",
+    "package": "npm run build:prod && vsce package"
+  },
+  "dependencies": {
+    "marked": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.97.0",
+    "@types/node": "22.x",
+    "typescript": "^5.7.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.19.0",
+    "typescript-eslint": "^8.0.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
