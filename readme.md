@@ -4,8 +4,8 @@
   <p><strong>Expert Code Reviews Inside VS Code. Powered by DeepSeek.</strong></p>
 
   <p>
-    <a href="https://marketplace.visualstudio.com/items?itemName=SamiullahAtta.codesage-ai"><img src="https://img.shields.io/visual-studio-marketplace/v/SamiullahAtta.codesage-ai.svg?style=flat-square&color=007ACC" alt="Marketplace Version"></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=SamiullahAtta.codesage-ai"><img src="https://img.shields.io/visual-studio-marketplace/i/SamiullahAtta.codesage-ai.svg?style=flat-square&color=10b981" alt="Installs"></a>
+    <a href="https://marketplace.visualstudio.com/manage/publishers/samiullahatta"><img src="https://img.shields.io/visual-studio-marketplace/v/SamiullahAtta.codesage-ai.svg?style=flat-square&color=007ACC" alt="Marketplace Version"></a>
+    <a href="https://marketplace.visualstudio.com/manage/publishers/samiullahatta"><img src="https://img.shields.io/visual-studio-marketplace/i/SamiullahAtta.codesage-ai.svg?style=flat-square&color=10b981" alt="Installs"></a>
     <a href="https://github.com/Abdus-Sami01/codesage-ai/blob/main/LICENSE.txt"><img src="https://img.shields.io/github/license/Abdus-Sami01/codesage-ai.svg?style=flat-square&color=gray" alt="License"></a>
   </p>
 </div>
@@ -52,7 +52,7 @@ Works out of the box with Python, JavaScript, TypeScript, C++, Java, Go, Rust, P
 
 ## Installation & Setup
 
-1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=SamiullahAtta.codesage-ai).
+1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/manage/publishers/samiullahatta).
 2. Open the VS Code Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
 3. Run **`CodeSage: Set API Key`**.
 4. Paste your HuggingFace API token (Get one for free at [HuggingFace](https://huggingface.co/settings/tokens)).
