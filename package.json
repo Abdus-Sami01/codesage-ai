@@ -60,20 +60,34 @@
     "configuration": {
       "title": "CodeSage AI",
       "properties": {
+        "codesage-ai.provider": {
+          "type": "string",
+          "default": "openrouter",
+          "enum": [
+            "openrouter",
+            "openai",
+            "ollama",
+            "omniroute",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "OpenRouter — hosted gateway across many providers",
+            "OpenAI — api.openai.com",
+            "Ollama — local models on http://localhost:11434/v1",
+            "OmniRoute — self-hosted gateway; set baseUrl to your instance",
+            "Custom — any other OpenAI-compatible endpoint; set baseUrl"
+          ],
+          "description": "Provider preset. Every option must expose an OpenAI-compatible /chat/completions endpoint."
+        },
+        "codesage-ai.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "API base URL, for example http://localhost:8080/v1. Leave empty to use the provider preset's default. Required for the omniroute and custom presets."
+        },
         "codesage-ai.model": {
           "type": "string",
           "default": "deepseek-ai/DeepSeek-R1",
-          "enum": [
-            "deepseek-ai/DeepSeek-R1",
-            "deepseek-ai/DeepSeek-V3",
-            "deepseek-ai/DeepSeek-Coder-V2-Instruct"
-          ],
-          "enumDescriptions": [
-            "DeepSeek R1 — Deep reasoning model (recommended for thorough reviews)",
-            "DeepSeek V3 — Fast general-purpose model",
-            "DeepSeek Coder V2 — Specialized coding model"
-          ],
-          "description": "AI model to use for code reviews."
+          "description": "Model identifier to request. Must be a model your configured provider actually serves."
         },
         "codesage-ai.maxTokens": {
           "type": "number",
@@ -88,11 +102,6 @@
           "minimum": 0,
           "maximum": 1.5,
           "description": "Controls response creativity. Lower = more focused, higher = more creative."
-        },
-        "codesage-ai.pythonPath": {
-          "type": "string",
-          "default": "python",
-          "description": "Path to the Python interpreter."
         },
         "codesage-ai.reviewProfile": {
           "type": "string",
@@ -131,7 +140,9 @@
     "watch": "node esbuild.js --watch",
     "lint": "eslint src/",
     "pretest": "npm run build",
-    "test": "vscode-test",
+    "test": "npm run test:unit",
+    "test:unit": "tsc -p ./ && node --test \"out/**/*.test.js\"",
+    "test:integration": "vscode-test",
     "package": "npm run build:prod && vsce package"
   },
   "dependencies": {

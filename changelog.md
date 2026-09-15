@@ -4,6 +4,25 @@ All notable changes to CodeSage AI will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+- Provider presets for OpenRouter, OpenAI, Ollama and self-hosted gateways via `codesage-ai.provider`
+- `codesage-ai.baseUrl` for pointing at any OpenAI-compatible endpoint
+- Unit tests covering SSE decoding and provider payload parsing
+
+### Changed
+- Reviews are requested directly from TypeScript over HTTP; Python and `huggingface_hub` are no longer required to run the extension
+- `codesage-ai.model` accepts any model identifier instead of three fixed choices
+
+### Fixed
+- `codesage-ai.temperature` is now sent to the provider; previously it was read from settings and silently discarded
+- Token usage is reported from the provider response instead of always showing zero on streamed reviews
+- Provider and transport failures surface the status code and response body instead of a generic subprocess error
+
+### Removed
+- `codesage-ai.pythonPath`, which no longer has any effect
+
 ## [0.2.0] - 2026-05-10
 
 ### Added
