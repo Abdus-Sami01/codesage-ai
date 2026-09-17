@@ -4,6 +4,7 @@ import {
   SseDecoder,
   parseChatCompletion,
   parseChatStreamPayload,
+  parseModelCatalog,
 } from './sseParser';
 
 test('emits a frame only once its blank-line terminator arrives', () => {
@@ -156,4 +157,45 @@ test('throws when a completion carries an error envelope', () => {
 
 test('throws when a completion body is not an object', () => {
   assert.throws(() => parseChatCompletion('nope'), /not a JSON object/);
+});
+
+test('reads an OpenAI-shaped model catalog and sorts it', () => {
+  const models = parseModelCatalog({ data: [{ id: 'b-model' }, { id: 'a-model' }] });
+
+  assert.deepEqual(models.map((model) => model.id), ['a-model', 'b-model']);
+});
+
+test('accepts a bare array catalog', () => {
+  assert.deepEqual(parseModelCatalog([{ id: 'only' }]).map((model) => model.id), ['only']);
+});
+
+test('accepts a catalog of plain strings', () => {
+  assert.deepEqual(parseModelCatalog(['x', 'y']).map((model) => model.id), ['x', 'y']);
+});
+
+test('carries owner and context length when the provider reports them', () => {
+  const [model] = parseModelCatalog({
+    data: [{ id: 'm', owned_by: 'acme', context_length: 200000 }],
+  });
+
+  assert.equal(model.ownedBy, 'acme');
+  assert.equal(model.contextLength, 200000);
+});
+
+test('accepts the context window under any of its common names', () => {
+  assert.equal(parseModelCatalog([{ id: 'm', context_window: 128000 }])[0].contextLength, 128000);
+  assert.equal(parseModelCatalog([{ id: 'm', max_context_length: 8192 }])[0].contextLength, 8192);
+});
+
+test('falls back to name when a catalog entry has no id', () => {
+  assert.equal(parseModelCatalog([{ name: 'llama3' }])[0].id, 'llama3');
+});
+
+test('drops catalog entries that identify nothing', () => {
+  assert.deepEqual(parseModelCatalog([{ id: '' }, null, 42, { id: 'kept' }]).map((m) => m.id), ['kept']);
+});
+
+test('returns nothing for a catalog body that is not a list', () => {
+  assert.deepEqual(parseModelCatalog({ error: 'nope' }), []);
+  assert.deepEqual(parseModelCatalog(null), []);
 });
