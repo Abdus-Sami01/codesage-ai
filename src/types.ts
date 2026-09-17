@@ -1,5 +1,7 @@
+import type { RouteDefinition } from './services/rotation';
+
 /**
- * Request payload sent to the Python review backend.
+ * Request payload sent to the provider.
  */
 export interface ReviewRequest {
   code: string;
@@ -8,7 +10,10 @@ export interface ReviewRequest {
 }
 
 /**
- * Parsed response from the Python review backend.
+ * Parsed response from the provider.
+ *
+ * The attribution fields report which pool slot actually answered, which is not
+ * knowable from settings once rotation is in play.
  */
 export interface ReviewResponse {
   content: string;
@@ -16,6 +21,10 @@ export interface ReviewResponse {
   tokensUsed: number;
   duration: number;
   issues: CodeIssue[];
+  provider?: string;
+  routeLabel?: string;
+  tier?: number;
+  attempts?: number;
 }
 
 /**
@@ -32,16 +41,29 @@ export interface CodeIssue {
 }
 
 /**
+ * Named provider presets. Every entry must expose an OpenAI-compatible
+ * `/chat/completions` endpoint; providers with bespoke wire formats are reached
+ * through a gateway rather than added here.
+ */
+export type ProviderPreset = 'openai' | 'openrouter' | 'ollama' | 'omniroute' | 'custom';
+
+/**
  * User-configurable settings for CodeSage AI.
  */
 export interface ReviewConfig {
+  provider: ProviderPreset;
+  baseUrl: string;
   model: string;
   maxTokens: number;
   temperature: number;
-  pythonPath: string;
   profile: string;
   enableCodeLens: boolean;
   enableStreaming: boolean;
+  routes: RouteDefinition[];
+  invalidRoutes: string[];
+  requestTimeoutMs: number;
+  maxAttempts: number;
+  maxQueueWaitMs: number;
 }
 
 /**
@@ -55,9 +77,4 @@ export interface ReviewProfile {
   systemPrompt: string;
 }
 
-/**
- * Streaming chunk from the Python backend.
- */
-export type StreamChunk =
-  | { type: 'chunk'; content: string }
-  | { type: 'done'; content: string; model: string; tokens_used: number };
+export type { RouteDefinition };

@@ -154,6 +154,15 @@ export class ReviewPanel {
       ? `<span class="meta-badge issues-badge">${response.issues.length} issue${response.issues.length > 1 ? 's' : ''} found</span>`
       : '<span class="meta-badge success-badge">No issues</span>';
 
+    // With rotation on, the model that answered is not the model in settings,
+    // so the header reports the slot that actually did the work.
+    const providerStr = response.provider
+      ? `<span class="meta-badge">${this.escapeHtml(response.provider)}</span>`
+      : '';
+    const tierStr = response.tier !== undefined && response.tier > 1
+      ? `<span class="meta-badge issues-badge">fallback tier ${response.tier}</span>`
+      : '';
+
     this.panel.webview.html = /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -173,7 +182,9 @@ export class ReviewPanel {
             <div class="header-meta">
                 <span class="meta-badge">${this.escapeHtml(baseName)}</span>
                 <span class="meta-badge">${this.escapeHtml(languageId)}</span>
-                <span class="meta-badge">${this.escapeHtml(modelName)}</span>
+                ${providerStr}
+                <span class="meta-badge" title="${this.escapeHtml(response.model)}">${this.escapeHtml(modelName)}</span>
+                ${tierStr}
                 <span class="meta-badge">${durationStr}s</span>
                 ${tokensStr}
                 ${issuesStr}
