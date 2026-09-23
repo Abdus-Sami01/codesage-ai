@@ -55,12 +55,11 @@ Works out of the box with Python, JavaScript, TypeScript, C++, Java, Go, Rust, P
 1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=SamiullahAtta.codecooksage-ai).
 2. Open the VS Code Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
 3. Run **`CodeSage: Set API Key`**.
-4. Paste your HuggingFace API token (Get one for free at [HuggingFace](https://huggingface.co/settings/tokens)).
+4. Paste the API key for the provider you want to use.
    > *Note: Your key is stored securely in VS Code's encrypted SecretStorage and is never written to disk.*
-5. Ensure you have Python 3.8+ installed with the `huggingface_hub` package:
-   ```bash
-   pip install huggingface_hub
-   ```
+5. Pick your provider in settings via `codesage-ai.provider`. Presets for OpenRouter, OpenAI and Ollama resolve their own endpoint; for a self-hosted gateway choose `omniroute` or `custom` and set `codesage-ai.baseUrl` (for example `http://localhost:8080/v1`).
+
+No Python, no local runtime, and no extra packages — the extension talks to the provider directly.
 
 ---
 
@@ -82,10 +81,11 @@ You can customize CodeSage AI in your VS Code settings (`settings.json`):
 
 | Setting | Default | Description |
 |---|---|---|
-| `codesage-ai.model` | `deepseek-ai/DeepSeek-R1` | The AI model used for reviews. |
+| `codesage-ai.provider` | `openrouter` | Provider preset: `openrouter`, `openai`, `ollama`, `omniroute` or `custom`. |
+| `codesage-ai.baseUrl` | `""` | API base URL. Empty uses the preset default; required for `omniroute` and `custom`. |
+| `codesage-ai.model` | `deepseek-ai/DeepSeek-R1` | Model identifier. Must be one your provider serves. |
 | `codesage-ai.maxTokens` | `4096` | Maximum response length from the AI. |
 | `codesage-ai.temperature` | `0.3` | Response creativity (0 to 1.5). Lower is more focused. |
-| `codesage-ai.pythonPath` | `python` | Path to your local Python interpreter. |
 | `codesage-ai.reviewProfile` | `general` | Default review focus profile. |
 | `codesage-ai.enableCodeLens`| `true` | Toggle the inline 'Review' buttons above functions. |
 | `codesage-ai.enableStreaming`| `true` | Stream results in real-time to the webview panel. |
@@ -94,21 +94,20 @@ You can customize CodeSage AI in your VS Code settings (`settings.json`):
 
 ## Architecture
 
-CodeSage AI bridges the gap between the TypeScript VS Code API and a lightweight Python backend, allowing for highly efficient streaming inference.
+CodeSage AI is pure TypeScript and calls any OpenAI-compatible provider directly, streaming the response as it arrives.
 
 ```text
 VS Code Extension (TypeScript)
   |
   |-- reviewCode.ts / reviewFunction.ts  (commands)
-  |-- reviewService.ts                   (spawns Python subprocess)
+  |-- reviewService.ts                   (builds the request, reads the stream)
+  |-- sseParser.ts                       (SSE decoding, provider payload parsing)
   |-- reviewPanel.ts                     (Webview rendering)
   |-- diagnosticsProvider.ts             (inline squiggly lines)
   |
   v
-code_review.py (Python backend)
-  |-- Reads JSON from stdin
-  |-- Calls HuggingFace API (DeepSeek model)
-  |-- Writes streaming JSON lines to stdout
+POST {baseUrl}/chat/completions
+  |-- OpenRouter, OpenAI, Ollama, or any self-hosted gateway
 ```
 
 ---

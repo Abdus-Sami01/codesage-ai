@@ -49,7 +49,7 @@ export async function reviewCodeCommand(
 
   // 4. Run review
   const config = getConfig();
-  const service = new ReviewService(config, apiKey, context.extensionPath, outputChannel);
+  const service = new ReviewService(config, apiKey, outputChannel);
 
   statusBar.setReviewing();
 
