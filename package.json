@@ -1,11 +1,11 @@
 {
   "name": "codecooksage-ai",
-  "displayName": "CodeSage AI(DeepSeek)",
+  "displayName": "CodeSage AI (DeepSeek)",
   "description": "AI-powered code reviews inside VS Code. Get instant, expert-level feedback on bugs, security, performance, and code quality — powered by DeepSeek.",
   "version": "0.2.0",
   "publisher": "SamiullahAtta",
   "icon": "media/icon.png",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Abdus-Sami01/codesage-ai"
