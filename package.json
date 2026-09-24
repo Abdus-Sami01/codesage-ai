@@ -1,7 +1,7 @@
 {
   "name": "codecooksage-ai",
-  "displayName": "CodeSage AI (DeepSeek)",
-  "description": "AI-powered code reviews inside VS Code. Get instant, expert-level feedback on bugs, security, performance, and code quality — powered by DeepSeek.",
+  "displayName": "CodeSage AI",
+  "description": "AI-powered code reviews inside VS Code. Instant, expert-level feedback on bugs, security, performance and code quality from any OpenAI-compatible provider, with automatic model rotation so a rate limit never ends your session.",
   "version": "0.2.0",
   "publisher": "SamiullahAtta",
   "icon": "media/icon.png",
@@ -22,10 +22,14 @@
   "keywords": [
     "ai",
     "code review",
-    "deepseek",
     "code analysis",
     "linter",
-    "code quality"
+    "code quality",
+    "openai",
+    "openrouter",
+    "ollama",
+    "deepseek",
+    "llm"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -47,6 +51,21 @@
       {
         "command": "codesage-ai.selectProfile",
         "title": "CodeSage: Select Review Profile"
+      },
+      {
+        "command": "codesage-ai.selectModel",
+        "title": "CodeSage: Select Model",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "codesage-ai.manageKeys",
+        "title": "CodeSage: Manage API Keys",
+        "icon": "$(key)"
+      },
+      {
+        "command": "codesage-ai.showPool",
+        "title": "CodeSage: Show Rotation Pool",
+        "icon": "$(list-ordered)"
       }
     ],
     "keybindings": [
@@ -71,11 +90,11 @@
             "custom"
           ],
           "enumDescriptions": [
-            "OpenRouter — hosted gateway across many providers",
-            "OpenAI — api.openai.com",
-            "Ollama — local models on http://localhost:11434/v1",
-            "OmniRoute — self-hosted gateway; set baseUrl to your instance",
-            "Custom — any other OpenAI-compatible endpoint; set baseUrl"
+            "OpenRouter \u2014 hosted gateway across many providers",
+            "OpenAI \u2014 api.openai.com",
+            "Ollama \u2014 local models on http://localhost:11434/v1",
+            "OmniRoute \u2014 self-hosted gateway; set baseUrl to your instance",
+            "Custom \u2014 any other OpenAI-compatible endpoint; set baseUrl"
           ],
           "description": "Provider preset. Every option must expose an OpenAI-compatible /chat/completions endpoint."
         },
@@ -87,20 +106,20 @@
         "codesage-ai.model": {
           "type": "string",
           "default": "deepseek-ai/DeepSeek-R1",
-          "description": "Model identifier to request. Must be a model your configured provider actually serves."
+          "description": "Model identifier to request. Run \"CodeSage: Select Model\" to pick from what your provider actually serves. Used as the single route when \"codesage-ai.routes\" is empty."
         },
         "codesage-ai.maxTokens": {
           "type": "number",
           "default": 4096,
           "minimum": 256,
-          "maximum": 16384,
-          "description": "Maximum tokens in the AI response."
+          "maximum": 131072,
+          "description": "Maximum tokens in the AI response. The ceiling is the largest any current model accepts; your provider rejects anything the chosen model cannot deliver."
         },
         "codesage-ai.temperature": {
           "type": "number",
           "default": 0.3,
           "minimum": 0,
-          "maximum": 1.5,
+          "maximum": 2,
           "description": "Controls response creativity. Lower = more focused, higher = more creative."
         },
         "codesage-ai.reviewProfile": {
@@ -129,6 +148,69 @@
           "type": "boolean",
           "default": true,
           "description": "Stream review results in real-time as the AI generates them."
+        },
+        "codesage-ai.routes": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Ranked pool of models to rotate through. Leave empty to use the single `#codesage-ai.model#` setting.\n\nWhen this list is non-empty it **replaces** the single model: reviews try tier 1 routes first and fall back to higher tiers only when every better route is rate limited. Capacity is routes multiplied by the number of API keys stored for each provider.\n\nExample:\n\n```json\n[\n  { \"model\": \"anthropic/claude-sonnet-4\", \"provider\": \"openrouter\", \"tier\": 1 },\n  { \"model\": \"deepseek-ai/DeepSeek-R1\", \"provider\": \"openrouter\", \"tier\": 2 },\n  { \"model\": \"qwen2.5-coder:14b\", \"provider\": \"ollama\", \"tier\": 3 }\n]\n```",
+          "items": {
+            "type": "object",
+            "required": [
+              "model"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "model": {
+                "type": "string",
+                "description": "Model identifier as the provider spells it."
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openrouter",
+                  "openai",
+                  "ollama",
+                  "omniroute",
+                  "custom"
+                ],
+                "description": "Provider preset. Defaults to \"codesage-ai.provider\"."
+              },
+              "baseUrl": {
+                "type": "string",
+                "description": "Endpoint for this route. Defaults to the provider preset, or to \"codesage-ai.baseUrl\" when the provider matches."
+              },
+              "tier": {
+                "type": "number",
+                "minimum": 1,
+                "default": 1,
+                "description": "Preference rank. Tier 1 is tried first; higher tiers are fallbacks."
+              },
+              "label": {
+                "type": "string",
+                "description": "Name shown in notifications and the rotation pool view."
+              }
+            }
+          }
+        },
+        "codesage-ai.requestTimeoutMs": {
+          "type": "number",
+          "default": 120000,
+          "minimum": 0,
+          "description": "Abort a request after this many milliseconds of silence. While streaming the clock restarts on every chunk, so a slow model is not cut off mid-review. Set to 0 to wait indefinitely."
+        },
+        "codesage-ai.maxAttempts": {
+          "type": "number",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 25,
+          "description": "How many pool slots one review may try before giving up. Each failure parks that slot for as long as the provider asked for, so later reviews skip it without paying the round trip."
+        },
+        "codesage-ai.maxQueueWaitMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 0,
+          "maximum": 300000,
+          "description": "When every route is throttled, wait up to this long for the first one to recover instead of failing. Longer pauses are reported rather than waited out. Set to 0 to never wait."
         }
       }
     }

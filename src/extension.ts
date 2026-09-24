@@ -1,10 +1,19 @@
 import * as vscode from 'vscode';
 import { reviewCodeCommand } from './commands/reviewCode';
 import { reviewFunctionCommand } from './commands/reviewFunction';
-import { setApiKey } from './config';
+import {
+  manageKeysCommand,
+  selectModelCommand,
+  setApiKeyCommand,
+  showPoolCommand,
+} from './commands/configure';
 import { DiagnosticsProvider } from './providers/diagnosticsProvider';
 import { ReviewCodeLensProvider } from './providers/codeLensProvider';
+import { QuotaLedger, SlotRecord } from './services/rotation';
 import { StatusBar } from './statusBar';
+
+/** Where the rotation pool's pauses are persisted between windows. */
+const LEDGER_STATE_KEY = 'codesage-ai.quotaLedger';
 
 /**
  * Called when the extension is activated.
@@ -17,6 +26,15 @@ export function activate(context: vscode.ExtensionContext) {
   const diagnosticsProvider = new DiagnosticsProvider();
   const codeLensProvider = new ReviewCodeLensProvider();
   const statusBar = new StatusBar();
+
+  // A daily quota outlives a window reload, so the ledger is backed by global
+  // state rather than kept in memory with the service that consults it.
+  const ledger = new QuotaLedger({
+    read: () => context.globalState.get<Record<string, SlotRecord>>(LEDGER_STATE_KEY),
+    write: (records) => {
+      void context.globalState.update(LEDGER_STATE_KEY, records);
+    },
+  });
 
   // ── Register CodeLens provider for all languages ──
   const codeLensDisposable = vscode.languages.registerCodeLensProvider(
@@ -36,34 +54,33 @@ export function activate(context: vscode.ExtensionContext) {
   // ── Commands ──
   const reviewDisposable = vscode.commands.registerCommand(
     'codesage-ai.reviewCode',
-    () => reviewCodeCommand(context, outputChannel, diagnosticsProvider, statusBar)
+    () => reviewCodeCommand(context, outputChannel, diagnosticsProvider, statusBar, ledger)
   );
 
   const reviewFunctionDisposable = vscode.commands.registerCommand(
     'codesage-ai.reviewFunction',
     (uri: vscode.Uri, range: vscode.Range, symbolName: string) =>
-      reviewFunctionCommand(context, outputChannel, diagnosticsProvider, statusBar, uri, range, symbolName)
+      reviewFunctionCommand(context, outputChannel, diagnosticsProvider, statusBar, ledger, uri, range, symbolName)
   );
 
   const apiKeyDisposable = vscode.commands.registerCommand(
     'codesage-ai.setApiKey',
-    async () => {
-      const key = await vscode.window.showInputBox({
-        prompt: 'Enter your HuggingFace API Key',
-        password: true,
-        placeHolder: 'hf_...',
-        ignoreFocusOut: true,
-        validateInput: (value) => {
-          if (!value || !value.trim()) return 'API key cannot be empty.';
-          if (!value.startsWith('hf_')) return 'HuggingFace API keys typically start with "hf_".';
-          return null;
-        },
-      });
-      if (key) {
-        await setApiKey(context.secrets, key);
-        vscode.window.showInformationMessage('CodeSage AI: API key saved securely.');
-      }
-    }
+    () => setApiKeyCommand(context)
+  );
+
+  const manageKeysDisposable = vscode.commands.registerCommand(
+    'codesage-ai.manageKeys',
+    () => manageKeysCommand(context)
+  );
+
+  const selectModelDisposable = vscode.commands.registerCommand(
+    'codesage-ai.selectModel',
+    () => selectModelCommand(context, outputChannel, ledger)
+  );
+
+  const showPoolDisposable = vscode.commands.registerCommand(
+    'codesage-ai.showPool',
+    () => showPoolCommand(context, outputChannel, ledger)
   );
 
   const selectProfileDisposable = vscode.commands.registerCommand(
@@ -90,6 +107,9 @@ export function activate(context: vscode.ExtensionContext) {
     reviewDisposable,
     reviewFunctionDisposable,
     apiKeyDisposable,
+    manageKeysDisposable,
+    selectModelDisposable,
+    showPoolDisposable,
     selectProfileDisposable,
     dismissDiagnosticDisposable,
     closeListener,

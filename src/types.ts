@@ -1,3 +1,5 @@
+import type { RouteDefinition } from './services/rotation';
+
 /**
  * Request payload sent to the provider.
  */
@@ -9,6 +11,9 @@ export interface ReviewRequest {
 
 /**
  * Parsed response from the provider.
+ *
+ * The attribution fields report which pool slot actually answered, which is not
+ * knowable from settings once rotation is in play.
  */
 export interface ReviewResponse {
   content: string;
@@ -16,6 +21,10 @@ export interface ReviewResponse {
   tokensUsed: number;
   duration: number;
   issues: CodeIssue[];
+  provider?: string;
+  routeLabel?: string;
+  tier?: number;
+  attempts?: number;
 }
 
 /**
@@ -50,6 +59,11 @@ export interface ReviewConfig {
   profile: string;
   enableCodeLens: boolean;
   enableStreaming: boolean;
+  routes: RouteDefinition[];
+  invalidRoutes: string[];
+  requestTimeoutMs: number;
+  maxAttempts: number;
+  maxQueueWaitMs: number;
 }
 
 /**
@@ -62,3 +76,5 @@ export interface ReviewProfile {
   description: string;
   systemPrompt: string;
 }
+
+export type { RouteDefinition };

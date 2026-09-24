@@ -25,6 +25,13 @@ export interface ChatCompletionResult {
   totalTokens: number;
 }
 
+/** One model as advertised by a provider's `/models` endpoint. */
+export interface ModelDescriptor {
+  id: string;
+  ownedBy: string | null;
+  contextLength: number | null;
+}
+
 /**
  * Accumulates network chunks and emits whole SSE frames. Network reads split at
  * arbitrary byte offsets, so a frame routinely arrives across several pushes.
@@ -220,4 +227,45 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+/** Reads `data[]` from an OpenAI-compatible catalog, tolerating extra vendor fields. */
+export function parseModelCatalog(body: unknown): ModelDescriptor[] {
+  const container = body as { data?: unknown } | null;
+  const entries = Array.isArray(container?.data) ? container.data : body;
+
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  const models: ModelDescriptor[] = [];
+
+  for (const entry of entries) {
+    if (typeof entry === 'string') {
+      models.push({ id: entry, ownedBy: null, contextLength: null });
+      continue;
+    }
+
+    if (typeof entry !== 'object' || entry === null) {
+      continue;
+    }
+
+    const raw = entry as Record<string, unknown>;
+    const id = typeof raw.id === 'string' ? raw.id : typeof raw.name === 'string' ? raw.name : '';
+
+    if (id.length === 0) {
+      continue;
+    }
+
+    const contextLength = [raw.context_length, raw.context_window, raw.max_context_length]
+      .find((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+    models.push({
+      id,
+      ownedBy: typeof raw.owned_by === 'string' ? raw.owned_by : null,
+      contextLength: contextLength ?? null,
+    });
+  }
+
+  return models.sort((left, right) => left.id.localeCompare(right.id));
 }

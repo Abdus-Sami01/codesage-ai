@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { getApiKey, getConfig } from '../config';
-import { ReviewService } from '../services/reviewService';
+import { getConfig } from '../config';
+import { createReviewService } from '../services/reviewService';
+import { QuotaLedger } from '../services/rotation';
+import { ensurePoolReady } from './configure';
 import { ReviewPanel } from '../panels/reviewPanel';
 import { DiagnosticsProvider } from '../providers/diagnosticsProvider';
 import { StatusBar } from '../statusBar';
@@ -15,7 +17,8 @@ export async function reviewCodeCommand(
   context: vscode.ExtensionContext,
   outputChannel: vscode.OutputChannel,
   diagnosticsProvider: DiagnosticsProvider,
-  statusBar: StatusBar
+  statusBar: StatusBar,
+  ledger: QuotaLedger
 ): Promise<void> {
   // 1. Validate active editor
   const editor = vscode.window.activeTextEditor;
@@ -34,23 +37,15 @@ export async function reviewCodeCommand(
     return;
   }
 
-  // 3. Ensure API key is configured
-  const apiKey = await getApiKey(context.secrets);
-  if (!apiKey) {
-    const action = await vscode.window.showWarningMessage(
-      'CodeSage AI: No API key configured. Set your HuggingFace API key to get started.',
-      'Set API Key'
-    );
-    if (action === 'Set API Key') {
-      vscode.commands.executeCommand('codesage-ai.setApiKey');
-    }
+  // 3. Ensure the rotation pool has something to talk to
+  const config = getConfig();
+  const service = await createReviewService(context.secrets, config, ledger, outputChannel);
+
+  if (!(await ensurePoolReady(service, config))) {
     return;
   }
 
   // 4. Run review
-  const config = getConfig();
-  const service = new ReviewService(config, apiKey, outputChannel);
-
   statusBar.setReviewing();
 
   await vscode.window.withProgress(
@@ -106,7 +101,7 @@ export async function reviewCodeCommand(
 
         statusBar.setIdle();
         outputChannel.appendLine(
-          `Review completed: ${document.fileName} — ${response.issues.length} issues, ${response.tokensUsed} tokens, ${(response.duration / 1000).toFixed(1)}s`
+          `Review completed: ${document.fileName} — ${response.issues.length} issues, ${response.tokensUsed} tokens, ${(response.duration / 1000).toFixed(1)}s via ${response.routeLabel ?? response.model} (attempt ${response.attempts ?? 1})`
         );
       } catch (error) {
         statusBar.setError();

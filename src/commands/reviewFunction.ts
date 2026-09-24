@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { getApiKey, getConfig } from '../config';
-import { ReviewService } from '../services/reviewService';
+import { getConfig } from '../config';
+import { createReviewService } from '../services/reviewService';
+import { QuotaLedger } from '../services/rotation';
+import { ensurePoolReady } from './configure';
 import { ReviewPanel } from '../panels/reviewPanel';
 import { DiagnosticsProvider } from '../providers/diagnosticsProvider';
 import { StatusBar } from '../statusBar';
@@ -14,6 +16,7 @@ export async function reviewFunctionCommand(
   outputChannel: vscode.OutputChannel,
   diagnosticsProvider: DiagnosticsProvider,
   statusBar: StatusBar,
+  ledger: QuotaLedger,
   uri: vscode.Uri,
   range: vscode.Range,
   symbolName: string
@@ -26,20 +29,12 @@ export async function reviewFunctionCommand(
     return;
   }
 
-  const apiKey = await getApiKey(context.secrets);
-  if (!apiKey) {
-    const action = await vscode.window.showWarningMessage(
-      'CodeSage AI: No API key configured.',
-      'Set API Key'
-    );
-    if (action === 'Set API Key') {
-      vscode.commands.executeCommand('codesage-ai.setApiKey');
-    }
+  const config = getConfig();
+  const service = await createReviewService(context.secrets, config, ledger, outputChannel);
+
+  if (!(await ensurePoolReady(service, config))) {
     return;
   }
-
-  const config = getConfig();
-  const service = new ReviewService(config, apiKey, outputChannel);
 
   statusBar.setReviewing();
 
@@ -53,21 +48,42 @@ export async function reviewFunctionCommand(
       progress.report({ message: `Reviewing "${symbolName}"…` });
 
       try {
-        const response = await service.review(
-          {
-            code,
-            language: document.languageId,
-            fileName: document.fileName,
-          },
-          token
-        );
+        let response;
 
-        ReviewPanel.show(
-          context.extensionUri,
-          response,
-          document.fileName,
-          document.languageId
-        );
+        if (config.enableStreaming) {
+          const streamPanel = ReviewPanel.showStreaming(
+            context.extensionUri,
+            document.fileName,
+            document.languageId
+          );
+
+          response = await service.reviewStream(
+            { code, language: document.languageId, fileName: document.fileName },
+            (partial) => {
+              streamPanel.updateStream(partial);
+              progress.report({ message: `Receiving review of "${symbolName}"…` });
+            },
+            token
+          );
+
+          streamPanel.finalize(response, document.fileName, document.languageId);
+        } else {
+          response = await service.review(
+            {
+              code,
+              language: document.languageId,
+              fileName: document.fileName,
+            },
+            token
+          );
+
+          ReviewPanel.show(
+            context.extensionUri,
+            response,
+            document.fileName,
+            document.languageId
+          );
+        }
 
         // Set inline diagnostics — adjust line numbers relative to function start
         if (response.issues.length > 0) {
@@ -81,7 +97,7 @@ export async function reviewFunctionCommand(
 
         statusBar.setIdle();
         outputChannel.appendLine(
-          `Function review completed: ${symbolName} (${response.tokensUsed} tokens, ${(response.duration / 1000).toFixed(1)}s)`
+          `Function review completed: ${symbolName} (${response.tokensUsed} tokens, ${(response.duration / 1000).toFixed(1)}s via ${response.routeLabel ?? response.model})`
         );
       } catch (error) {
         statusBar.setError();
