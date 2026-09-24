@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- CodeSage panel in the activity bar: connection setup with a Test button, key management, live model picker with a free-only filter, one-click reviews, rotation pool status and review history
+- `CodeSage: Review File` from the editor title bar and the explorer right-click menu
+- `CodeSage: Review Uncommitted Changes` reviews the git diff of the workspace, also from the Source Control title bar
+- Getting-started walkthrough and a one-time setup prompt when nothing is configured
 - Provider presets for OpenRouter, OpenAI, Ollama and self-hosted gateways via `codesage-ai.provider`
 - `codesage-ai.baseUrl` for pointing at any OpenAI-compatible endpoint
 - Model rotation: `codesage-ai.routes` ranks any number of models, and a review walks the pool in tier order until one answers
@@ -21,13 +25,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 - Reviews are requested directly from TypeScript over HTTP; Python and `huggingface_hub` are no longer required to run the extension
-- `codesage-ai.model` accepts any model identifier instead of three fixed choices
+- `codesage-ai.model` accepts any model identifier instead of three fixed choices, and defaults to `openrouter/free`
 - `CodeSage: Review Function` honours `codesage-ai.enableStreaming` like `Review Code` already did
 - `codesage-ai.maxTokens` accepts up to 131072, and `codesage-ai.temperature` up to 2
 - Gateways on `localhost` or a private address are reachable with no API key at all
 - The API key prompt asks which provider the key is for instead of requiring a HuggingFace `hf_` prefix
 
 ### Fixed
+- Reviewing a selection put inline diagnostics on the wrong lines; they now line up with the selected code
+- A failed streamed review left the panel spinning on "Analyzing"; it now shows the error
 - `codesage-ai.temperature` is now sent to the provider; previously it was read from settings and silently discarded
 - Token usage is reported from the provider response instead of always showing zero on streamed reviews
 - Provider and transport failures surface the status code and response body instead of a generic subprocess error

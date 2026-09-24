@@ -63,18 +63,21 @@ Works out of the box with Python, JavaScript, TypeScript, C++, Java, Go, Rust, P
 ## Installation & Setup
 
 1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=SamiullahAtta.codecooksage-ai).
-2. Open the VS Code Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
-3. Run **`CodeSage: Set API Key`**.
-4. Paste the API key for the provider you want to use.
-   > *Note: Your key is stored securely in VS Code's encrypted SecretStorage and is never written to disk.*
-5. Pick your provider in settings via `codesage-ai.provider`. Presets for OpenRouter, OpenAI and Ollama resolve their own endpoint; for a self-hosted gateway choose `omniroute` or `custom` and set `codesage-ai.baseUrl` (for example `http://localhost:8080/v1`).
-6. Run **`CodeSage: Select Model`** to pick from the models your provider actually serves.
+2. Click the **CodeSage** icon in the activity bar. A setup prompt also opens it on first launch.
+3. Under **Connection**, pick a provider, paste your API key and click **Test**.
+   - **OpenRouter** (default): free account at [openrouter.ai/keys](https://openrouter.ai/keys). The default model `openrouter/free` costs nothing.
+   - **OmniRoute** or **Custom**: set the endpoint, e.g. `http://localhost:20128/v1`.
+   - **Ollama**: no key needed.
+4. Under **Model**, click **Load list**, pick a model and click **Use**. Tick **Free only** to hide paid models.
+5. Hit **Current file**, **Selection** or **Uncommitted git changes**.
+
+Keys are stored in VS Code's encrypted SecretStorage and never written to settings files.
 
 No Python, no local runtime, and no extra packages — the extension talks to the provider directly. A gateway on `localhost` or a private address needs no API key at all.
 
 ### Raising the ceiling
 
-One key on one model runs out. Two things raise that ceiling, and they multiply:
+One key on one model runs out. Two things raise that ceiling, and they multiply. Both can be done from the panel (**Add** under API keys, **Add as fallback** under Model) or by hand:
 
 - **More keys.** Run `CodeSage: Manage API Keys` and add another key for the same provider. Each one carries its own quota.
 - **More models.** Rank models in `codesage-ai.routes`. Tier 1 is tried first; higher tiers are the fallbacks used only when everything better is throttled.
@@ -82,7 +85,7 @@ One key on one model runs out. Two things raise that ceiling, and they multiply:
 ```jsonc
 "codesage-ai.routes": [
   { "model": "anthropic/claude-sonnet-4", "provider": "openrouter", "tier": 1 },
-  { "model": "deepseek-ai/DeepSeek-R1",   "provider": "openrouter", "tier": 2 },
+  { "model": "deepseek/deepseek-r1",      "provider": "openrouter", "tier": 2 },
   { "model": "qwen2.5-coder:14b",         "provider": "ollama",     "tier": 3 }
 ]
 ```
@@ -95,14 +98,16 @@ Three routes with two OpenRouter keys is five independently rate-limited slots. 
 
 | Action | How to do it |
 |---|---|
-| **Review Entire File** | Open a file and press `Ctrl+Shift+R` (or run `CodeSage: Review Code`). |
-| **Review Selection** | Highlight a block of code, then press `Ctrl+Shift+R`. |
+| **Review Entire File** | Click **Current file** in the CodeSage panel, the review icon in the editor title bar, or right-click a file in the explorer. `Ctrl+Shift+R` works too. |
+| **Review Selection** | Highlight code, then click **Selection** in the panel, right-click **CodeSage: Review Code**, or press `Ctrl+Shift+R`. |
+| **Review Git Changes** | Click **Uncommitted git changes** in the panel or the review icon in the Source Control title bar. |
+| **Reopen a Past Review** | Click it under **History** in the panel. No model call is made. |
 | **Review Single Function** | Click the inline `Review` button above any function definition. |
 | **Apply Quick Fix** | Hover over a squiggly line and click the lightbulb icon to apply the AI's fix. |
 | **Switch Profile** | Click the `CodeSage` item in your bottom status bar. |
-| **Pick a Model** | Run `CodeSage: Select Model` to choose from the provider's live catalog. |
-| **Add or Remove Keys** | Run `CodeSage: Manage API Keys`. |
-| **Inspect the Pool** | Run `CodeSage: Show Rotation Pool` to see every route, its state, and its recovery time. |
+| **Pick a Model** | **Model → Load list** in the panel, or `CodeSage: Select Model`. |
+| **Add or Remove Keys** | **API keys** in the panel, or `CodeSage: Manage API Keys`. |
+| **Inspect the Pool** | **Rotation pool** in the panel shows every route live, with recovery timers. `CodeSage: Show Rotation Pool` prints the same. |
 
 ---
 
@@ -114,7 +119,7 @@ You can customize CodeSage AI in your VS Code settings (`settings.json`):
 |---|---|---|
 | `codesage-ai.provider` | `openrouter` | Provider preset: `openrouter`, `openai`, `ollama`, `omniroute` or `custom`. |
 | `codesage-ai.baseUrl` | `""` | API base URL. Empty uses the preset default; required for `omniroute` and `custom`. |
-| `codesage-ai.model` | `deepseek-ai/DeepSeek-R1` | Model identifier. Used as the only route when `routes` is empty. |
+| `codesage-ai.model` | `openrouter/free` | Model identifier. Used as the only route when `routes` is empty. |
 | `codesage-ai.routes` | `[]` | Ranked pool of models to rotate through. Replaces `model` when non-empty. |
 | `codesage-ai.maxTokens` | `4096` | Maximum response length from the AI (up to 131072). |
 | `codesage-ai.temperature` | `0.3` | Response creativity (0 to 2). Lower is more focused. |
