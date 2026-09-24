@@ -10,7 +10,7 @@ const API_KEY_SECRET = 'codesage-ai.apiKey';
 /** Provider-keyed credential pool. Multiple keys per provider multiply capacity. */
 const KEY_POOL_SECRET = 'codesage-ai.keyPool';
 
-const DEFAULT_MODEL = 'deepseek-ai/DeepSeek-R1';
+const DEFAULT_MODEL = 'openrouter/free';
 const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_ATTEMPTS = 6;
 const DEFAULT_MAX_QUEUE_WAIT_MS = 15_000;
