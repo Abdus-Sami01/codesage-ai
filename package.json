@@ -1,6 +1,6 @@
 {
   "name": "codecooksage-ai",
-  "displayName": "CodeSage AI",
+  "displayName": "CodeSage AI Code Review",
   "description": "AI-powered code reviews inside VS Code. Instant, expert-level feedback on bugs, security, performance and code quality from any OpenAI-compatible provider, with automatic model rotation so a rate limit never ends your session.",
   "version": "0.3.0",
   "publisher": "SamiullahAtta",
