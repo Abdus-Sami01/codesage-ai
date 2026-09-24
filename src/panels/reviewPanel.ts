@@ -55,6 +55,15 @@ export class ReviewPanel {
   }
 
   /**
+   * Replaces the streaming placeholder with the failure, so a rejected request
+   * never leaves the panel spinning on "Analyzing".
+   */
+  public showError(message: string): void {
+    const html = `<div class="review-error"><h2>Review failed</h2><p>${this.escapeHtml(message)}</p></div>`;
+    this.panel.webview.postMessage({ type: 'update', html });
+  }
+
+  /**
    * Finalizes the streaming view with the complete response metadata.
    */
   public finalize(response: ReviewResponse, fileName: string, languageId: string): void {
