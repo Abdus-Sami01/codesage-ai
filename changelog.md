@@ -4,7 +4,7 @@ All notable changes to CodeSage AI will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [0.3.0] - 2026-09-25
 
 ### Added
 - CodeSage panel in the activity bar: connection setup with a Test button, key management, live model picker with a free-only filter, one-click reviews, rotation pool status and review history
