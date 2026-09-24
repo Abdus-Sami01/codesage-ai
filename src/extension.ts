@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
-import { reviewCodeCommand } from './commands/reviewCode';
+import {
+  ReviewContext,
+  reviewChangesCommand,
+  reviewCodeCommand,
+  reviewFileCommand,
+} from './commands/reviewCode';
 import { reviewFunctionCommand } from './commands/reviewFunction';
 import {
   manageKeysCommand,
@@ -7,13 +12,19 @@ import {
   setApiKeyCommand,
   showPoolCommand,
 } from './commands/configure';
+import { getConfig } from './config';
+import { ReviewHistory, SidebarProvider } from './panels/sidebarProvider';
 import { DiagnosticsProvider } from './providers/diagnosticsProvider';
 import { ReviewCodeLensProvider } from './providers/codeLensProvider';
+import { createReviewService } from './services/reviewService';
 import { QuotaLedger, SlotRecord } from './services/rotation';
 import { StatusBar } from './statusBar';
 
 /** Where the rotation pool's pauses are persisted between windows. */
 const LEDGER_STATE_KEY = 'codesage-ai.quotaLedger';
+
+/** Set once the first-run setup prompt has been shown, so it never nags twice. */
+const ONBOARDED_STATE_KEY = 'codesage-ai.onboarded';
 
 /**
  * Called when the extension is activated.
@@ -26,6 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
   const diagnosticsProvider = new DiagnosticsProvider();
   const codeLensProvider = new ReviewCodeLensProvider();
   const statusBar = new StatusBar();
+  const history = new ReviewHistory(context.workspaceState);
 
   // A daily quota outlives a window reload, so the ledger is backed by global
   // state rather than kept in memory with the service that consults it.
@@ -34,6 +46,21 @@ export function activate(context: vscode.ExtensionContext) {
     write: (records) => {
       void context.globalState.update(LEDGER_STATE_KEY, records);
     },
+  });
+
+  const reviewContext: ReviewContext = {
+    context,
+    outputChannel,
+    diagnosticsProvider,
+    statusBar,
+    ledger,
+    history,
+  };
+
+  // ── Sidebar ──
+  const sidebar = new SidebarProvider(context, outputChannel, ledger, history);
+  const sidebarDisposable = vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, sidebar, {
+    webviewOptions: { retainContextWhenHidden: true },
   });
 
   // ── Register CodeLens provider for all languages ──
@@ -52,47 +79,28 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // ── Commands ──
-  const reviewDisposable = vscode.commands.registerCommand(
-    'codesage-ai.reviewCode',
-    () => reviewCodeCommand(context, outputChannel, diagnosticsProvider, statusBar, ledger)
-  );
-
-  const reviewFunctionDisposable = vscode.commands.registerCommand(
-    'codesage-ai.reviewFunction',
-    (uri: vscode.Uri, range: vscode.Range, symbolName: string) =>
-      reviewFunctionCommand(context, outputChannel, diagnosticsProvider, statusBar, ledger, uri, range, symbolName)
-  );
-
-  const apiKeyDisposable = vscode.commands.registerCommand(
-    'codesage-ai.setApiKey',
-    () => setApiKeyCommand(context)
-  );
-
-  const manageKeysDisposable = vscode.commands.registerCommand(
-    'codesage-ai.manageKeys',
-    () => manageKeysCommand(context)
-  );
-
-  const selectModelDisposable = vscode.commands.registerCommand(
-    'codesage-ai.selectModel',
-    () => selectModelCommand(context, outputChannel, ledger)
-  );
-
-  const showPoolDisposable = vscode.commands.registerCommand(
-    'codesage-ai.showPool',
-    () => showPoolCommand(context, outputChannel, ledger)
-  );
-
-  const selectProfileDisposable = vscode.commands.registerCommand(
-    'codesage-ai.selectProfile',
-    () => statusBar.showProfilePicker()
-  );
-
-  const dismissDiagnosticDisposable = vscode.commands.registerCommand(
-    'codesage-ai.dismissDiagnostic',
-    (uri: vscode.Uri, diagnostic: vscode.Diagnostic) =>
-      diagnosticsProvider.dismissDiagnostic(uri, diagnostic)
-  );
+  const commandDisposables = [
+    vscode.commands.registerCommand('codesage-ai.reviewCode', () => reviewCodeCommand(reviewContext)),
+    vscode.commands.registerCommand('codesage-ai.reviewFile', (uri?: vscode.Uri) =>
+      reviewFileCommand(reviewContext, uri instanceof vscode.Uri ? uri : undefined)
+    ),
+    vscode.commands.registerCommand('codesage-ai.reviewChanges', () => reviewChangesCommand(reviewContext)),
+    vscode.commands.registerCommand(
+      'codesage-ai.reviewFunction',
+      (uri: vscode.Uri, range: vscode.Range, symbolName: string) =>
+        reviewFunctionCommand(reviewContext, uri, range, symbolName)
+    ),
+    vscode.commands.registerCommand('codesage-ai.setApiKey', () => setApiKeyCommand(context)),
+    vscode.commands.registerCommand('codesage-ai.manageKeys', () => manageKeysCommand(context)),
+    vscode.commands.registerCommand('codesage-ai.selectModel', () => selectModelCommand(context, outputChannel, ledger)),
+    vscode.commands.registerCommand('codesage-ai.showPool', () => showPoolCommand(context, outputChannel, ledger)),
+    vscode.commands.registerCommand('codesage-ai.selectProfile', () => statusBar.showProfilePicker()),
+    vscode.commands.registerCommand('codesage-ai.openSidebar', () => sidebar.reveal()),
+    vscode.commands.registerCommand(
+      'codesage-ai.dismissDiagnostic',
+      (uri: vscode.Uri, diagnostic: vscode.Diagnostic) => diagnosticsProvider.dismissDiagnostic(uri, diagnostic)
+    ),
+  ];
 
   // ── Clear diagnostics when files are closed ──
   const closeListener = vscode.workspace.onDidCloseTextDocument((doc) => {
@@ -102,21 +110,46 @@ export function activate(context: vscode.ExtensionContext) {
   // ── Push all disposables ──
   context.subscriptions.push(
     outputChannel,
+    sidebarDisposable,
     codeLensDisposable,
     codeActionDisposable,
-    reviewDisposable,
-    reviewFunctionDisposable,
-    apiKeyDisposable,
-    manageKeysDisposable,
-    selectModelDisposable,
-    showPoolDisposable,
-    selectProfileDisposable,
-    dismissDiagnosticDisposable,
+    ...commandDisposables,
     closeListener,
     { dispose: () => diagnosticsProvider.dispose() },
     { dispose: () => codeLensProvider.dispose() },
     { dispose: () => statusBar.dispose() },
+    { dispose: () => sidebar.dispose() },
+    { dispose: () => history.dispose() },
   );
+
+  void offerFirstRunSetup(context, reviewContext);
+}
+
+/**
+ * Opens the sidebar once for a user who has nothing configured, instead of
+ * letting their first review fail with a missing-key error.
+ */
+async function offerFirstRunSetup(context: vscode.ExtensionContext, ctx: ReviewContext): Promise<void> {
+  if (context.globalState.get<boolean>(ONBOARDED_STATE_KEY, false)) {
+    return;
+  }
+
+  const service = await createReviewService(context.secrets, getConfig(), ctx.ledger, ctx.outputChannel);
+  await context.globalState.update(ONBOARDED_STATE_KEY, true);
+
+  if (service.poolSize > 0) {
+    return;
+  }
+
+  const action = await vscode.window.showInformationMessage(
+    'CodeSage AI needs a model provider before the first review. It takes about a minute.',
+    'Set Up',
+    'Later'
+  );
+
+  if (action === 'Set Up') {
+    await vscode.commands.executeCommand('codesage-ai.openSidebar');
+  }
 }
 
 /**

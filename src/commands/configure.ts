@@ -12,7 +12,7 @@ import { ProviderPreset, ReviewConfig } from '../types';
 
 const CONFIG_SECTION = 'codesage-ai';
 
-const PROVIDER_LABELS: Record<ProviderPreset, string> = {
+export const PROVIDER_LABELS: Record<ProviderPreset, string> = {
   openrouter: 'OpenRouter',
   openai: 'OpenAI',
   ollama: 'Ollama (local)',
